@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 ## emacs: -*- mode: python; py-indent-offset: 4; tab-width: 4; indent-tabs-mode: nil -*-
 # ex: set sts=4 ts=4 sw=4 noet:
 # ## ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##
@@ -17,6 +17,7 @@ from shutil import rmtree
 import subprocess
 import sys
 from urllib.parse import urlparse
+DEBUG=1
 
 
 class RCloneRemote(object):
@@ -65,6 +66,10 @@ class RCloneRemote(object):
     def log(self, *args):
         print(*args, file=self.errstream)
 
+    def debug(self, *args):
+        if DEBUG:
+            print(*args, file=self.errstream)
+
     def send(self, msg):
         print(msg, end='', file=self.outstream, flush=True)
 
@@ -107,6 +112,7 @@ class RCloneRemote(object):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
+        self.debug(lsjson, lsjson.returncode)
         if lsjson.returncode == 3:
             # ls didn't find a repo at the remote end, but could talk to
             # the rclone remote itself -> nothing to there
@@ -115,6 +121,7 @@ class RCloneRemote(object):
             raise RuntimeError(
                 'Accesing rclone remote failed: {}'.format(lsjson.stderr))
         ls = {i['Path']: i for i in json.loads(lsjson.stdout)}
+        self.debug(ls)
         return ls.get('repo.7z', {}).get('Hashes', None)
 
     def mirror_repo_if_needed(self):
@@ -124,6 +131,7 @@ class RCloneRemote(object):
         url = self.parsed_url
         # stamp file with last syncronization IDs
         synced = self.workdir / 'synced'
+        self.debug("Synced dir:", synced)
         repo_hashes = None
         if synced.exists():
             repo_hashes = self.get_remote_state()
@@ -145,9 +153,10 @@ class RCloneRemote(object):
             # in case we never sync'ed, obtain the ID info prior download
             # so we have it, whenever the download succeeded
             repo_hashes = self.get_remote_state()
-        if repo_hashes is None:
+            self.debug('-------- repo_hashes', repo_hashes)
+        # if repo_hashes is None:
             # there is nothing at the remote end
-            return
+            # return
         sync_dir = self.workdir / 'sync'
         self.log('Downloading repository archive')
         subprocess.run([
@@ -181,6 +190,7 @@ class RCloneRemote(object):
             # to pull them from did not materialize. Crash at this point,
             # any recovery form such a situation should have happened
             # before
+            self.debug(self.repodir)
             raise RuntimeError(
                 'rclone repository mirror not found')
         env = os.environ.copy()
@@ -343,6 +353,7 @@ class RCloneRemote(object):
         class instance.
         """
         for line in self.instream:
+            self.debug(line)
             if line == '\n':
                 # orderly exit command
                 return
