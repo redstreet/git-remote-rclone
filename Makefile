@@ -1,4 +1,4 @@
-PYTHON ?= python
+PYTHON ?= python3
 
 clean:
 	$(PYTHON) setup.py clean
