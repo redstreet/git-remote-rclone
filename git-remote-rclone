@@ -68,7 +68,7 @@ class RCloneRemote(object):
         # print(info.filename)
 
     def log(self, *args):
-        print("[GCR]", *args, file=self.errstream)
+        print("[GRR]", *args, file=self.errstream)
 
     def send(self, msg=''):
         print(msg, end='\n', file=self.outstream, flush=True)
