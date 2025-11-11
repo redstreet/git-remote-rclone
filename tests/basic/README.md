@@ -1,0 +1,2 @@
+- first, run ./create-test.bash once to create the repo and local cloud
+- then, run ./add-commit.bash any number of times
