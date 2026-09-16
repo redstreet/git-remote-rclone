@@ -363,6 +363,11 @@ def main():
     if len(sys.argv) < 3:
         raise ValueError("Usage: git-remote-rclone REMOTE-NAME URL")
 
+    # Git's remote-helper and fast-import protocols require LF-delimited lines.
+    # Prevent Python from translating them to CRLF on Windows.
+    if os.name == 'nt' and hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(newline='\n')
+
     remote, url = sys.argv[1:3]
     gitdir = os.environ['GIT_DIR'] # no fallback, must be present
 
