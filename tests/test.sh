@@ -170,6 +170,31 @@ test_conflict()
 	reset_repo "${SECOND_REPO}"
 }
 
+test_recreate_empty_remote()
+{
+	set -xe
+	local remote_url="${1?missing remote_url}"
+
+	setup_remote_repo
+	setup_repo "${remote_url}"
+	append_data "${FIRST_REPO}" "${TEST_FILE1}" "first history"
+	create_commit "${FIRST_REPO}"
+	push_repo "${FIRST_REPO}"
+
+	# Remove the remote contents while retaining the helper's local cache.
+	rm -rf "${REMOTE_REPO}"
+	mkdir -p "${REMOTE_REPO}"
+
+	# Replace the local branch with unrelated history and push to the now-empty
+	# remote. A stale mirror cache must not cause fast-import to reject it.
+	git -C "${FIRST_REPO}" checkout --orphan replacement
+	git -C "${FIRST_REPO}" rm -rf .
+	append_data "${FIRST_REPO}" "${TEST_FILE1}" "replacement history"
+	create_commit "${FIRST_REPO}"
+	git -C "${FIRST_REPO}" branch -M master
+	push_repo "${FIRST_REPO}"
+}
+
 print_test_started()
 {
 	local test="${1?missing test}"
@@ -215,6 +240,9 @@ tests()
 	run_test test_3way_merge "${remote_type}"
 	run_test test_conflict "${remote_type}"
 	run_test test_pull_repo "${remote_type}"
+	if [ "${remote_type}" = "plain" ]; then
+		run_test test_recreate_empty_remote "${remote_type}" "${remote_url}"
+	fi
 }
 
 main()

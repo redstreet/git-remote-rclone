@@ -130,10 +130,22 @@ class RCloneRemote(object):
         synced = self.workdir / 'synced'
         repo_hash = self.get_remote_state()
 
-        if synced.exists() and not repo_hash:
-            # we had it sync'ed before, but now it is gone from the remote
-            # remove sync stamp, but leave any local mirror untouched as it's the only copy
-            synced.unlink()
+        if not repo_hash:
+            remote_refs = self.get_remote_refs()
+            if not remote_refs:
+                # The remote is empty. Any local mirror and mark files are cache
+                # from an earlier state and must not constrain a new push.
+                self.log('Remote repository is empty; resetting local mirror cache')
+                rmtree(str(self.workdir), ignore_errors=True)
+                self.workdir.mkdir(parents=True, exist_ok=True)
+                self.marks_git.touch()
+                self.marks_rclone.touch()
+                return
+
+            if synced.exists():
+                # The archive disappeared but refs remain. Keep the local mirror
+                # as the only possible copy, but invalidate the sync stamp.
+                synced.unlink()
             return
 
         if synced.exists():
